@@ -1,0 +1,1334 @@
+;================================
+; PING PONG GAME IN NASM
+; ================================
+
+org 0x100
+jmp start
+
+;;;;declaration
+    msg1: db 'enter name of player 1: $',0
+    msg2: db 'enter name of player 2: $', 0
+    name1:  dw 'AMARA $', 0
+    name2: dw 'ZAINAB $ ',0
+    maker1: db 'GAME MADE BY UME AMMARAH (23F-3034) $ ', 0
+    maker2: db 'ZAINAB (23F-0545) $', 0
+    instruction1: db "Left Paddle (Player 1): Controlled by the 'W' and 'S' keys  $ ", 0
+    instruction2: db "Right Paddle (Player 2): Controlled by the Up Arrow and Down Arrow keys $ ", 0
+    welcome: db 'Hi BOSS $', 0
+    welcome2: db 'WELCOME TO Ping Pong GAME $', 0
+    made: db 'GAME MADE BY $', 0
+    score1:db 0
+    score2:dw 0
+    pause_msg db 'Game Paused. Press "C" to continue $', 0
+
+    name_msg1 db 'Player1 $', 0
+    name_msg2 db 'Player2 $', 0
+
+; Sub-Routine to clear the screen
+clrscr:
+    push es
+    push ax
+    push cx
+    push di
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov cx, 2000
+    mov ax, 0x0720
+
+    cld
+    rep STOSW
+
+    pop di
+    pop cx
+    pop ax
+    pop es
+    ret
+
+display1:
+    mov ah, 0x09
+    lea dx, [msg1]
+    int 0x21
+    ret
+
+display2:
+    mov ah, 0x09
+    lea dx, [msg2]
+    int 0x21
+    ret
+;---- display names---
+show_name1:
+    push ax
+    push bx
+    push cx
+    push dx
+
+    mov ah, 0x02           ; BIOS function to set cursor position
+    mov bh, 0x00           ; Page number (usually 0)
+    mov dh, 23             ; Row (13th row, 0-indexed)
+    mov dl, 5             ; Column (31st column, 0-indexed)
+    int 0x10               ; BIOS interrupt to set cursor position
+
+    mov ah, 0x09           ; DOS function to display string
+    lea dx, [name_msg1]    ; Address of "Game Paused" message
+    int 0x21               ; DOS interrupt
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+show_name2:
+    push ax
+    push bx
+    push cx
+    push dx
+
+    mov ah, 0x02           ; BIOS function to set cursor position
+    mov bh, 0x00           ; Page number (usually 0)
+    mov dh, 23             ; Row (13th row, 0-indexed)
+    mov dl, 68            ; Column (31st column, 0-indexed)
+    int 0x10               ; BIOS interrupt to set cursor position
+
+    mov ah, 0x09           ; DOS function to display string
+    lea dx, [name_msg2]    ; Address of "Game Paused" message
+    int 0x21               ; DOS interrupt
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+;------------scores-------
+show_score1:
+    push ax
+    push bx
+    push cx
+    push dx
+    push es
+    push di
+
+    mov ax, 0xb800         ; Video memory segment
+    mov es, ax             ; Set ES to point to video memory
+
+    mov al, [score1]       ; Load the value of score1 into AL
+    add al, '0'            ; Convert to ASCII ('0' = 48 in ASCII)
+
+    ; Calculate position: Row 10, Column 20
+    mov di, 0     ; Row 10, Column 20
+    mov di , 3684
+    ;shl di, 1              ; Each character cell is 2 bytes
+
+    ; Write the character and its attribute to video memory
+    mov ah, 0x07           ; Light gray on black background
+    mov [es:di], ax        ; Write AX (character + attribute) to video memory
+
+    pop di
+    pop es
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+show_score2:
+    push ax
+    push bx
+    push cx
+    push dx
+    push es
+    push di
+
+    mov ax, 0xb800         ; Video memory segment
+    mov es, ax             ; Set ES to point to video memory
+
+    mov al, [score2]       ; Load the value of score1 into AL
+    add al, '0'            ; Convert to ASCII ('0' = 48 in ASCII)
+
+    ; Calculate position: Row 10, Column 20
+    mov di, 0     ; Row 10, Column 20
+    mov di , 3810
+    ;shl di, 1              ; Each character cell is 2 bytes
+
+    ; Write the character and its attribute to video memory
+    mov ah, 0x07           ; Light gray on black background
+    mov [es:di], ax        ; Write AX (character + attribute) to video memory
+
+    pop di
+    pop es
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+;--------------grid-------------
+print_grid:
+    push es
+    push ax
+    push cx
+    push di
+
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 0
+    mov ah, 0x07
+    mov al, '_'
+    mov cx, 80
+    cld
+    rep stosw
+
+    ; Left 1
+    mov cx, 22
+
+border1:
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 160
+    mov al, 0xB3
+    mov ah, 0x07
+
+border11:
+    mov word [es:di], ax
+    add di, 160
+    loop border11
+
+    ; Left 2
+    mov cx, 22
+border1_2:
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 162
+    mov al, 0xB3
+    mov ah, 0x07
+
+border12:
+    mov word [es:di], ax
+    add di, 160
+    loop border12
+
+    ; Right 1
+    mov cx, 22
+border2:
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 318
+    mov al, 0xB3
+    mov ah, 0x07
+
+border21:
+    mov word [es:di], ax
+    add di, 160
+    loop border21
+
+    ; Right 2
+    mov cx, 22
+border24:
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 316
+    mov al, 0xB3
+    mov ah, 0x07
+
+border214:
+    mov word [es:di], ax
+    add di, 160
+    loop border214
+
+    ; Lower
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 3520
+    mov ah, 0x07
+    mov al, '-'
+    mov cx, 80
+    cld
+    rep stosw
+    call show_name1
+    call show_name2
+
+    call show_score1
+    call show_score2
+    pop di
+    pop cx
+    pop ax
+    pop es
+    ret
+
+;---------------PADDLES-------------
+;---- left----
+draw_left_paddle:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+    push es
+
+    mov ax, 0xb800        ; Video memory segment
+    mov es, ax            ; Set ES to video memory
+    xor di, di            ; Clear DI register
+
+    ; Left paddle parameters
+    mov bx, 2            ; Column position (5 for left paddle)
+    mov cx, 6             ; Paddle height (6 lines)
+    mov si, [paddle_pos]  ; Starting row (variable row position)
+
+    mov ax, 160          
+    mul si                ; Calculate row offset (SI * 160)
+    add di, ax            ; Set starting position (row offset)
+    mov ax, bx            ; Load column position
+    shl ax, 1             ; Multiply BX by 2 (each column is 2 bytes)
+    add di, ax            ; Add column offset to starting position
+
+    mov ah, 0x44          ; Set attribute (color)
+    mov al, '|'           ; Paddle character
+
+draw_left_loop:
+    mov word [es:di], ax  ; Write character + attribute to video memory
+    add di, 160           ; Move to next row (one row = 160 bytes)
+    loop draw_left_loop   ; Repeat for paddle height
+
+    pop es
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+clear_paddle:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+    push es
+
+    mov ax, 0xb800        ; Video memory segment
+    mov es, ax            ; Set ES to video memory
+    xor di, di
+
+    ; Clear left paddle
+    mov bx, 2             ; Column position (5 for left paddle)
+    mov cx, 6             ; Paddle height (6 lines)
+    mov si, [paddle_pos]  ; Starting row
+
+    mov ax, 160          
+    mul si                ; Calculate row offset
+    add di, ax
+    mov ax, bx
+    shl ax, 1             ; Multiply BX by 2
+    add di, ax
+
+    mov ax, 0x0720        ; Clear character with blank space and default attribute
+
+clear_left_loop:
+    mov word [es:di], ax  ; Clear character
+    add di, 160           ; Move to next row
+    loop clear_left_loop
+
+    pop es
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+;---- right----
+
+paddle_pos1: dw 10
+
+draw_right_paddle:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+    push es
+
+    mov ax, 0xb800        ; Video memory segment
+    mov es, ax            ; Set ES to video memory
+    xor di, di            ; Clear DI register
+
+    ; Left paddle parameters
+    mov bx, 77           ; Column position (5 for left paddle)
+    mov cx, 6             ; Paddle height (6 lines)
+    mov si, [paddle_pos1]  ; Starting row (variable row position)
+
+    mov ax, 160          
+    mul si                ; Calculate row offset (SI * 160)
+    add di, ax            ; Set starting position (row offset)
+    mov ax, bx            ; Load column position
+    shl ax, 1             ; Multiply BX by 2 (each column is 2 bytes)
+    add di, ax            ; Add column offset to starting position
+
+    mov ah, 0x44          ; Set attribute (color)
+    mov al, '|'           ; Paddle character
+
+draw_right_loop:
+    mov word [es:di], ax  ; Write character + attribute to video memory
+    add di, 160           ; Move to next row (one row = 160 bytes)
+    loop draw_right_loop   ; Repeat for paddle height
+
+    pop es
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+clear_paddle1:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+    push es
+
+    mov ax, 0xb800        ; Video memory segment
+    mov es, ax            ; Set ES to video memory
+    xor di, di
+
+    ; Clear left paddle
+    mov bx, 77            ; Column position (5 for left paddle)
+    mov cx, 6             ; Paddle height (6 lines)
+    mov si, [paddle_pos1]  ; Starting row
+
+    mov ax, 160          
+    mul si                ; Calculate row offset
+    add di, ax
+    mov ax, bx
+    shl ax, 1             ; Multiply BX by 2
+    add di, ax
+
+    mov ax, 0x0720        ; Clear character with blank space and default attribute
+
+clear_right_loop1:
+    mov word [es:di], ax  ; Clear character
+    add di, 160           ; Move to next row
+    loop clear_right_loop1
+
+    pop es
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+ end1: db "Game ended! Player 1 wins  $ ", 0
+
+;------------end------------
+;------------end------------
+end11: db 'player1 has won  Game Ended , press R to restart or N to end, ', 0
+end_screen1:
+    call clrscr
+
+    ; Set video mode for text output
+    mov ah, 0x13
+    mov al, 1
+    mov bh, 0
+    mov bl, 5
+
+    mov dx, 0x0A01
+    mov cx,  62
+    push cs
+    pop es
+    mov bp, end11
+    int 0x10
+
+    mov ah, 0              ; BIOS keyboard function
+    int 16h                ; Get keypress
+
+    cmp al, 'r'           ; Check for 'r' key (move up)
+    je start2
+
+    cmp al, 'n'           ; Check for 'S' key (move down)
+    je play_sound2
+start2:
+    jmp start
+
+play_sound2:
+    ; Set the frequency for the PC speaker
+    mov ax, 0xB6           ; Timer control word: Square wave on channel 2
+    out 0x43, al           ; Send control word to the timer control port
+
+    mov ax, 1193           ; Frequency divisor for ~440 Hz tone
+    out 0x42, al           ; Send low byte to channel 2 data port
+    mov al, ah
+    out 0x42, al           ; Send high byte to channel 2 data port
+
+    ; Enable the PC speaker
+    in al, 0x61            ; Read the current state of the speaker port
+    or al, 0x03            ; Set bits 0 and 1 to enable speaker
+    out 0x61, al           ; Write back to the speaker port
+
+    ; Delay loop for sound duration
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay1:
+    loop sound_delay1        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay101:
+    loop sound_delay101        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay221:
+    loop sound_delay221        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay331:
+    loop sound_delay331       ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay441:
+    loop sound_delay441        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay551:
+    loop sound_delay551        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay661:
+    loop sound_delay661        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay771:
+    loop sound_delay771        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay881:
+    loop sound_delay881        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay991:
+    loop sound_delay991        ; Simple delay
+
+    ; Disable the PC speaker
+    in al, 0x61            ; Read the current state of the speaker port
+    and al, 0xFC           ; Clear bits 0 and 1 to disable speaker
+    out 0x61, al           ; Write back to the speaker port
+
+    jmp program_exit2       ; Exit the program after playing the sound
+
+program_exit2:
+    mov ax, 0x4c00         ; Exit the program
+    int 0x21
+
+
+end2: db 'player2 has won  Game Ended , press R to restart or N to end, ', 0  
+end_screen2:
+    call clrscr
+
+    ; Set video mode for text output
+    mov ah, 0x13
+    mov al, 1
+    mov bh, 0
+    mov bl, 5
+
+    mov dx, 0x0A01
+    mov cx, 62
+    push cs
+    pop es
+    mov bp, end2
+    int 0x10
+   
+    mov ah, 0              ; BIOS keyboard function
+    int 16h                ; Get keypress
+
+    cmp al, 'r'           ; Check for 'r' key (move up)
+    je start1
+
+    cmp al, 'n'           ; Check for 'S' key (move down)
+    je play_sound1
+
+start1:
+    jmp start    
+
+play_sound1:
+    ; Set the frequency for the PC speaker
+    mov ax, 0xB6           ; Timer control word: Square wave on channel 2
+    out 0x43, al           ; Send control word to the timer control port
+
+    mov ax, 1193           ; Frequency divisor for ~440 Hz tone
+    out 0x42, al           ; Send low byte to channel 2 data port
+    mov al, ah
+    out 0x42, al           ; Send high byte to channel 2 data port
+
+    ; Enable the PC speaker
+    in al, 0x61            ; Read the current state of the speaker port
+    or al, 0x03            ; Set bits 0 and 1 to enable speaker
+    out 0x61, al           ; Write back to the speaker port
+
+    ; Delay loop for sound duration
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay0:
+    loop sound_delay0        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay10:
+    loop sound_delay10        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay22:
+    loop sound_delay22        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay33:
+    loop sound_delay33       ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay44:
+    loop sound_delay44        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay55:
+    loop sound_delay55        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay66:
+    loop sound_delay66        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay77:
+    loop sound_delay77        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay88:
+    loop sound_delay88        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay99:
+    loop sound_delay99        ; Simple delay
+
+    ; Disable the PC speaker
+    in al, 0x61            ; Read the current state of the speaker port
+    and al, 0xFC           ; Clear bits 0 and 1 to disable speaker
+    out 0x61, al           ; Write back to the speaker port
+
+    jmp program_exit1       ; Exit the program after playing the sound
+
+program_exit1:
+    mov ax, 0x4c00         ; Exit the program
+    int 0x21
+
+
+end: db 'Game ended, press R to restart or N to end  $',0
+end_screen:
+    call clrscr
+
+    ; Set video mode for text output
+    mov ah, 0x13
+    mov al, 1
+    mov bh, 0
+    mov bl, 5
+
+    mov dx, 0x0A01
+    mov cx, 44
+    push cs
+    pop es
+    mov bp, end
+    int 0x10
+
+    mov ah, 0              ; BIOS keyboard function
+    int 16h                ; Get keypress
+
+    cmp al, 'r'            ; Check for 'r' key to restart
+    je starte               ; Jump to 'start' if 'r' is pressed
+
+    cmp al, 'n'            ; Check for 'n' key to exit
+    je play_sound          ; Jump to play sound if 'n' is pressed
+
+starte:
+    jmp start
+
+play_sound:
+    ; Set the frequency for the PC speaker
+    mov ax, 0xB6           ; Timer control word: Square wave on channel 2
+    out 0x43, al           ; Send control word to the timer control port
+
+    mov ax, 1193           ; Frequency divisor for ~440 Hz tone
+    out 0x42, al           ; Send low byte to channel 2 data port
+    mov al, ah
+    out 0x42, al           ; Send high byte to channel 2 data port
+
+    ; Enable the PC speaker
+    in al, 0x61            ; Read the current state of the speaker port
+    or al, 0x03            ; Set bits 0 and 1 to enable speaker
+    out 0x61, al           ; Write back to the speaker port
+
+    ; Delay loop for sound duration
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay:
+    loop sound_delay        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay16:  
+    loop sound_delay16        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay2:
+    loop sound_delay2        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay3:
+    loop sound_delay3       ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay4:
+    loop sound_delay4        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay5:
+    loop sound_delay5        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay6:
+    loop sound_delay6        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay7:
+    loop sound_delay7        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay8:
+    loop sound_delay8        ; Simple delay
+
+    mov cx, 0xFFFF         ; Outer loop count (adjust for duration)
+sound_delay9:
+    loop sound_delay9        ; Simple delay
+
+    ; Disable the PC speaker
+    in al, 0x61            ; Read the current state of the speaker port
+    and al, 0xFC           ; Clear bits 0 and 1 to disable speaker
+    out 0x61, al           ; Write back to the speaker port
+
+    jmp program_exit       ; Exit the program after playing the sound
+
+program_exit:
+    mov ax, 0x4c00         ; Exit the program
+    int 0x21
+
+
+
+; Variable to track the paddle's current position
+paddle_pos: dw 10  
+
+;--------   mainnn-----------
+mainnn:
+    mov ax, [paddle_pos]  ; Initialize paddle position
+    call draw_left_paddle ; Draw the initial paddle
+    call draw_right_paddle
+    call draw_ball
+     call background
+main_loop:
+    call move_ball
+    call move_ball
+    mov cx , 0xFFFF
+ball_delay2:
+    loop ball_delay2
+
+    mov cx , 0xFFFF    
+ball_delay4:
+    loop ball_delay4
+
+  mov cx , 0xFFFF    
+ball_delay3:
+    loop ball_delay3
+
+    mov cx , 0xFFFF    
+ball_delay:
+    loop ball_delay
+
+    call check_paddle
+    jmp main_loop
+
+check_paddle:
+    mov ah, 1              ; BIOS keyboard check (non-blocking)
+    int 16h                ; Check if a key is pressed
+    jz no_key_pressed      ; If no key, skip input handling
+
+    mov ah, 0              ; BIOS keyboard function
+    int 16h                ; Get keypress
+
+    cmp al, 'w'           ; Check for 'W' key (move up)
+    je move_up
+    cmp al, 's'           ; Check for 'S' key (move down)
+    je move_down        ; Continue loop
+
+    ; call get_input        ; Wait for user input
+    cmp al, 'o'          ; Check for 'up arrow' key
+    je move_up1
+    cmp al, 'k'          ; Check for 'down arrow' key
+    je move_down1
+ 
+    cmp al , 'e'
+    je end_screen
+
+    cmp al , 'b'
+    je enable_pattern
+
+    cmp al , 't'
+    je disable_pattern
+
+check_pause:
+    cmp al , 'p'
+    je pause_game
+
+    call move_ball
+
+no_key_pressed:
+    ret
+
+enable_pattern:
+    mov byte[pattern_enabled], 1   ; Enable the pattern
+    jmp main_loop
+
+display_pattern:
+    mov si, 0xb800       ; Starting address for video memory buffer
+    mov cx, 2000               ; Number of characters to fill (80x25 screen)
+
+fill_screen:
+    mov al, '*'                ; Character for the pattern
+    stosb                      ; Store character in video memory
+    loop fill_screen
+    ret
+
+pattern_enabled: db 0
+
+disable_pattern:
+    mov byte[pattern_enabled], 0   ; Disable the pattern
+    jmp main_loop
+
+move_up:
+    cmp word [paddle_pos], 1 ; Check if at the top boundary
+    jle main_loop
+    call clear_paddle        ; Clear current paddle
+    dec word [paddle_pos]     ; Move paddle up
+    call draw_left_paddle     ; Redraw paddle
+    jmp main_loop
+
+move_down:
+    cmp word [paddle_pos], 16 ; Check if at the bottom boundary (rows - paddle height)
+    jge main_loop
+    call clear_paddle         ; Clear current paddle
+    inc word [paddle_pos]     ; Move paddle down
+    call draw_left_paddle     ; Redraw paddle
+    jmp main_loop
+
+move_up1:
+    cmp word [paddle_pos1], 1 ; Check if at the top boundary
+    jle main_loop
+    call clear_paddle1         ; Clear current paddle
+    dec word [paddle_pos1]     ; Move paddle up
+    call draw_right_paddle     ; Redraw paddle
+    jmp main_loop
+
+move_down1:
+    cmp word [paddle_pos1], 16 ; Check if at the bottom boundary (rows - paddle height)
+    jge main_loop
+    call clear_paddle1         ; Clear current paddle
+    inc word [paddle_pos1]     ; Move paddle down
+    call draw_right_paddle     ; Redraw paddle
+    jmp main_loop  
+
+pause_game:
+    call show_pause_message
+
+wait_continue:
+    mov ah, 1              ; BIOS keyboard check (non-blocking)
+    int 16h                ; Check if a key is pressed
+    jz wait_continue       ; Wait until a key is pressed
+
+
+ mov ah, 0              ; BIOS keyboard function
+    int 16h                ; Get keypress
+
+    cmp al, 'c'            ; Check if 'C' is pressed to continue
+    jne wait_continue      ; If not 'C', keep waiting
+
+    call clear_pause_message ; Clear the pause message
+    ret
+show_pause_message:
+    push ax
+    push bx
+    push cx
+    push dx
+
+    mov ah, 0x02           ; BIOS function to set cursor position
+    mov bh, 0x00           ; Page number (usually 0)
+    mov dh, 12             ; Row (13th row, 0-indexed)
+    mov dl, 30             ; Column (31st column, 0-indexed)
+    int 0x10               ; BIOS interrupt to set cursor position
+
+    mov ah, 0x09           ; DOS function to display string
+    lea dx, [pause_msg]    ; Address of "Game Paused" message
+    int 0x21               ; DOS interrupt
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+; Clear "Game Paused"
+
+clear_pause_message:
+    push es
+    push ax
+    push di
+
+    mov ax, 0xb800         ; Video memory segment
+    mov es, ax             ; Load ES with video memory segment
+    xor di, di             ; Clear DI
+    mov di, (12 * 160) + 60 ; Position for row 13, column 31 (12 * 160 + 30 * 2)
+    mov cx, 40             ; Length of message to clear (20 characters * 2 for attribute)
+    mov ax, 0x0720         ; Space character with default attribute (light gray on black)
+    rep stosw              ; Clear the message by writing spaces
+
+    pop di
+    pop ax
+    pop es
+    ret
+;----------ball movement------------
+
+ball_pos_row1: dw 13
+ball_pos_col1: dw 38
+ball_dir_row1: dw 1     ; Initial vertical direction (down)
+ball_dir_col1: dw 1     ; Initial horizontal direction (right)
+
+draw_ball:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+    push es
+
+    mov ax, 0xb800        ; Video memory segment
+    mov es, ax            ; Set ES to video memory
+    xor di, di            ; Clear DI register
+
+    ; Right paddle parameters
+    mov bx, [ball_pos_col1]            ; Column position (75 for right paddle)
+    mov cx, 1          ; Paddle height (1 lines)
+    mov si, [ball_pos_row1]           ; Starting row (row 10)
+    mov ax, 160           ; One row = 160 bytes (80 characters * 2 bytes)
+    mul si                ; Calculate row offset (SI * 160)
+    add di, ax            ; Set starting position (row offset)
+    mov ax, bx            ; Load column position
+    shl ax, 1             ; Multiply BX by 2 (each column is 2 bytes)
+    add di, ax            ; Add column offset to starting position
+
+    mov ah, 0x55       ; Set attribute (color)
+    mov al, 'o'           ; Paddle character
+
+draw_balll:
+    mov word [es:di], ax  ; Write character + attribute to video memory
+    add di, 160           ; Move to next row (one row = 160 bytes)q
+    loop draw_balll ; Repeat for paddle height
+
+    pop es
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+clear_ball:
+    push ax
+    push bx
+    push cx
+    push si
+    push di
+    push es
+
+    mov ax, 0xb800        ; Video memory segment
+    mov es, ax            ; Set ES to video memory
+    xor di, di
+
+    ; Ball parameters
+    mov si, [ball_pos_row1] ; Row position
+    mov bx, [ball_pos_col1] ; Column position
+
+    mov ax, 160           ; One row = 160 bytes
+    mul si                ; Calculate row offset
+    add di, ax
+    mov ax, bx            ; Load column position
+    shl ax, 1             ; Multiply BX by 2
+    add di, ax            ; Add column offset
+
+    mov ax, 0x0720        ; Clear character with blank space and default attribute
+    mov word [es:di], ax  ; Clear character
+
+    pop es
+    pop di
+    pop si
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+move_ball:
+    push ax
+    push bx
+    push cx
+    push dx
+
+    call clear_ball       ; Clear the current ball position
+    call background
+    ; Update row position
+    mov ax, [ball_pos_row1]
+    mov bx, [ball_dir_row1]
+    add ax, bx
+
+    ; Check for top boundary
+    cmp ax, 1
+    jl reverse_vertical
+
+    ; Check for bottom boundary (rows - 1)
+    cmp ax, 21           ; Screen has 25 rows (0-24)
+    jg reverse_vertical
+
+    mov [ball_pos_row1], ax
+
+    ; Update column position
+    mov ax, [ball_pos_col1]
+    mov bx, [ball_dir_col1]
+    add ax, bx
+
+    ; Check for left boundary
+    cmp ax, 3
+    jl reverse_horizontal
+
+    ; Check for right boundary (columns - 1)
+    cmp ax, 76            ; Screen has 80 columns (0-79)
+    jg reverse_horizontal
+
+    call check_collision
+
+    mov [ball_pos_col1], ax
+    jmp end_move
+
+reverse_vertical:
+    mov ax, [ball_dir_row1]
+    neg ax
+    mov word[ball_dir_row1], ax
+    jmp end_move
+
+reverse_horizontal:
+    mov ax, [ball_dir_col1]
+    neg ax
+    mov word[ball_dir_col1], ax
+
+end_move:
+    call draw_ball        ; Redraw the ball at the new position
+   
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+;----collsion-----
+check_collision:
+    push ax
+    push bx
+    push cx
+    push dx
+
+    ; === Check Left Paddle Collision ===
+    mov ax, [ball_pos_col1] ; Ball column
+    cmp ax, 6               ; Check if near the left paddle's column
+    jne check_right_paddle  ; If not, check the right paddle
+
+    ; Check if ball's row overlaps with the paddle's rows
+    mov ax, [ball_pos_row1] ; Ball row
+    mov bx, [paddle_pos]    ; Left paddle's top row
+    mov cx, 6               ; Paddle height
+
+    cmp ax, bx              ; Ball above the paddle?
+    jl check_right_paddle   ; No collision
+
+    add bx, cx              ; Bottom of paddle
+    cmp ax, bx              ; Ball below the paddle?
+    jge check_right_paddle  ; No collision
+
+    ; Collision detected with left paddle
+    call bounce_with_row_change_left ; Reverse directions and adjust position
+    jmp end_collision       ; Skip right paddle check
+
+check_right_paddle:
+    ; === Check Right Paddle Collision ===
+    mov ax, [ball_pos_col1] ; Ball column
+    cmp ax, 75              ; Check if near the right paddle's column
+    jne end_collision       ; If not, no collision
+
+    ; Check if ball's row overlaps with the paddle's rows
+    mov ax, [ball_pos_row1] ; Ball row
+    mov bx, [paddle_pos1]   ; Right paddle's top row
+    mov cx, 6               ; Paddle height
+
+    cmp ax, bx              ; Ball above the paddle?
+    jl end_collision        ; No collision
+    add bx, cx              ; Bottom of paddle
+    cmp ax, bx              ; Ball below the paddle?
+    jge end_collision       ; No collision
+    ; Collision detected with right paddle
+    call bounce_with_row_change_right ; Reverse directions and adjust position
+
+end_collision:
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+
+; Subroutine to reverse directions and make ball "bounce" from the left paddle
+bounce_with_row_change_left:
+   
+    neg word [ball_dir_row1]
+    add byte[score1], 1
+    call show_score1
+    cmp byte[score1], 7
+    je end_screen1
+    add word [ball_pos_col1], 2 ; Push ball away from the left paddle
+
+    ret
+
+; Subroutine to reverse directions and make ball "bounce" from the right paddle
+bounce_with_row_change_right:
+
+    add byte[score2],1
+    call show_score2
+    cmp byte[score2], 7
+    je end_screen2
+    neg word [ball_dir_row1]
+
+    sub word [ball_pos_col1], 2 ; Push ball away from the right paddle
+
+    ret
+    call draw_ball        ; Redraw the ball at the new position
+
+    pop dx
+    pop cx
+    pop bx
+    pop ax
+    ret
+;---------------BACKGROUND--------
+background:
+    ; Clear screen
+
+    push es
+    push ax
+    push cx
+    push di
+
+
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 328
+    mov ah, 0x83
+    mov al, '~'
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x84
+    mov di, 648
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x85
+     mov di, 648
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x83
+
+     mov di, 968
+    mov cx, 72
+    cld
+    rep stosw
+
+      mov ah, 0x84
+     mov di, 1288
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x81
+    mov di, 1608
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x81
+    mov di, 1928
+    mov cx, 72
+    cld
+    rep stosw
+   
+    mov ah, 0x81
+    mov di, 2248
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x81
+    mov di, 2568
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x81
+    mov di, 2888
+    mov cx, 72
+    cld
+    rep stosw
+
+    mov ah, 0x81
+    mov di, 3208
+    mov cx, 72
+    cld
+    rep stosw
+   
+    pop di
+    pop cx
+    pop ax
+    pop es
+    ret
+
+;-------------delay---------
+    mov cx , 0xFFFF  
+delayy:
+    loop delayy
+    ret
+;;-------intro----
+intro:
+    ; Clear screen
+    call clrscr
+
+    push es
+    push ax
+    push cx
+    push di
+
+
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 148
+    mov ah, 0x55
+    mov al, '_'
+    mov cx, 6
+    cld
+    rep stosw
+
+    mov cx, 3
+
+design1:
+    mov ax, 0xb800
+    mov es, ax
+    xor di, di
+    mov di, 158
+    mov al, '\'
+    mov ah, 0x55
+
+design11:
+    mov word [es:di], ax
+    add di, 160
+    loop design11
+
+    pop di
+    pop cx
+    pop ax
+    pop es
+
+    ; Set video mode for text output
+    mov ah, 0x13
+    mov al, 8
+    mov bh, 0
+    mov bl, 04
+
+    ; Print "Hi BOSS"
+    mov dx, 0x0821
+    mov cx, 7
+    push cs
+    pop es
+    mov bp, welcome
+    int 0x10
+     ; Print "HY WELCOME TO GAME"
+    mov dx, 0x0918
+    mov cx, 20
+    push cs
+    pop es
+    mov bp, welcome2
+    int 0x10
+   
+   
+    ; Print "UME AMMARAH (23F-3034) "
+    mov dx, 0x0A11
+    mov cx, 35
+    push cs
+    pop es
+    mov bp, maker1
+    int 0x10
+
+    ; Print "ZAINAB (23F-0545) "
+    mov dx, 0x0B20
+    mov cx, 17
+    push cs
+    pop es
+    mov bp, maker2
+    int 0x10
+
+    ; Print "Right Paddle (Player 1): Controlled by the 'W' and 'S' keys"
+    mov dx, 0x0C10
+    mov cx, 53
+    push cs
+    pop es
+    mov bp, instruction1
+    int 0x10
+
+    ; Print "Left Paddle (Player 2): Controlled by the Up Arrow and Down Arrow keys"
+    mov dx, 0x0D10
+    mov cx, 60
+    push cs
+    pop es
+    mov bp, instruction2
+    int 0x10
+
+    ; Wait for keypress
+    mov ah, 01
+    int 0x21
+
+    ret
+
+
+
+start:
+    call clrscr
+    call intro   ; Call the intro subroutine to display names and instructions
+    call clrscr
+    call print_grid
+    call mainnn
+   
+
+    mov ax, 0x4c00
+    int 0x21
+
+; ===== End of Code =====
